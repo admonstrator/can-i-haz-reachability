@@ -4,7 +4,7 @@
 
 **A professional tool to verify network reachability, TLS configurations, and firewall settings.**
 
-[![License](https://img.shields.io/github/license/Admonstrator/can-i-haz-reachability?style=for-the-badge)](LICENSE) [![Stars](https://img.shields.io/github/stars/Admonstrator/can-i-haz-reachability?style=for-the-badge)](https://github.com/Admonstrator/can-i-haz-reachability/stargazers) [![Release](https://img.shields.io/github/v/release/Admonstrator/can-i-haz-reachability?style=for-the-badge&logo=github&color=blue)](https://github.com/Admonstrator/can-i-haz-reachability/releases/latest)
+[![License](https://img.shields.io/github/license/Admonstrator/can-i-haz-reachability?style=for-the-badge)](LICENSE) [![Stars](https://img.shields.io/github/stars/Admonstrator/can-i-haz-reachability?style=for-the-badge)](https://github.com/Admonstrator/can-i-haz-reachability/stargazers)
 
 > 😺 **O HAI!** I can haz reachability? I checkz if ur ports are open so u don't haz to guess. It's like ping but fancy. Kthxbye!
 

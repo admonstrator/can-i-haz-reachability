@@ -66,27 +66,30 @@ jobs:
           update_date=$(date '+%Y-%m-%d')
           
           # Copy template and replace badge URLs with static badges
-          cp readme.template.md readme.md
+          cp readme.template.md README.md
           
           # Replace dynamic GitHub badges with static shields.io badges
-          sed -i "s|https://img.shields.io/github/v/release/Admonstrator/can-i-haz-reachability?style=for-the-badge\&logo=github\&color=blue|https://img.shields.io/badge/release-${release}-blue?style=for-the-badge\&logo=github|g" readme.md
+          sed -i "s|https://img.shields.io/github/v/release/Admonstrator/can-i-haz-reachability?style=for-the-badge\&logo=github\&color=blue|https://img.shields.io/badge/release-${release}-blue?style=for-the-badge\&logo=github|g" README.md
           
-          sed -i "s|https://img.shields.io/github/stars/Admonstrator/can-i-haz-reachability?style=for-the-badge|https://img.shields.io/badge/stars-${stars}-${stars_color}?style=for-the-badge\&logo=github|g" readme.md
+          sed -i "s|https://img.shields.io/github/stars/Admonstrator/can-i-haz-reachability?style=for-the-badge|https://img.shields.io/badge/stars-${stars}-${stars_color}?style=for-the-badge\&logo=github|g" README.md
+          
+          # Replace script version placeholder
+          sed -i "s|{{SCRIPT_VERSION}}|${script_version}|g" README.md
           
           # Add last updated badge
-          echo "" >> readme.md
-          echo "<div align=\"center\">" >> readme.md
-          echo "" >> readme.md
-          echo "_Last updated: ${update_date}_" >> readme.md
-          echo "" >> readme.md
-          echo "</div>" >> readme.md
+          echo "" >> README.md
+          echo "<div align=\"center\">" >> README.md
+          echo "" >> README.md
+          echo "_Last updated: ${update_date}_" >> README.md
+          echo "" >> README.md
+          echo "</div>" >> README.md
           
           echo "✅ README generated with static badges successfully"
       
       - name: Check for changes
         id: check_changes
         run: |
-          if git diff --quiet readme.md; then
+          if git diff --quiet README.md; then
             echo "changed=false" >> $GITHUB_OUTPUT
           else
             echo "changed=true" >> $GITHUB_OUTPUT
@@ -97,7 +100,7 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add readme.md
+          git add README.md
           git commit -m "🤖 Update repository badges [automated]"
           git push
       
