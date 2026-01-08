@@ -1,0 +1,28 @@
+services:
+  reflector:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    container_name: reflector-server
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../../logs:/logs
+    environment:
+      - REFLECTOR_PORT=8080
+      - REFLECTOR_TIMEOUT=5s
+      - REFLECTOR_ALLOWED_PORTS=80,443,8080,8443
+      - REFLECTOR_RATE_LIMIT_PER_MIN=10
+      - REFLECTOR_LOG_DIR=/logs
+    restart: unless-stopped
+    # Increase file descriptor limit for many concurrent connections
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

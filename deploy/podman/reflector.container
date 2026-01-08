@@ -1,0 +1,45 @@
+[Unit]
+Description=Can I haz Reachability Reflector Server Container
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=localhost/reflector-server:latest
+ContainerName=reflector-server
+
+# Port mapping
+PublishPort=127.0.0.1:8080:8080
+
+# Volume mounts
+Volume=/var/log/reflector:/logs:Z
+
+# Environment variables from file
+EnvironmentFile=%h/.config/containers/systemd/reflector.env
+
+# Resource limits
+PidsLimit=512
+
+# Security
+DropCapability=ALL
+
+# Ulimits for file descriptors
+Ulimit=nofile=65535:65535
+
+# Health check
+HealthCmd=wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+HealthInterval=30s
+HealthTimeout=5s
+HealthRetries=3
+HealthStartPeriod=5s
+
+# Restart policy
+Restart=always
+RestartSec=10s
+
+[Service]
+# Run as regular user (not root)
+# User=reflector
+# Group=reflector
+
+[Install]
+WantedBy=multi-user.target default.target

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Can I host stuff on my router?</title>
+    <meta name="description" content="Check if your device is accessible from the internet. Test IPv4 and IPv6 connectivity, analyze TLS certificates, and diagnose port reachability issues.">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://cgnat.admon.me/">
+    <meta property="og:title" content="Can I host stuff on my router?">
+    <meta property="og:description" content="Check if your device is accessible from the internet. Test IPv4 and IPv6 connectivity, analyze TLS certificates, and diagnose port reachability issues.">
+    <meta property="og:image" content="https://cgnat.admon.me/app.webp">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://cgnat.admon.me/">
+    <meta property="twitter:title" content="Can I host stuff on my router?">
+    <meta property="twitter:description" content="Check if your device is accessible from the internet. Test IPv4 and IPv6 connectivity, analyze TLS certificates, and diagnose port reachability issues.">
+    <meta property="twitter:image" content="https://cgnat.admon.me/app.webp">
+    
+    <link rel="stylesheet" href="style.css?cachebust=1.5.1">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="icon">📡</div>
+            <div class="title-wrapper">
+                <h1>Can I host stuff on my router?</h1>
+                <span class="badge-admon">by Admon</span>
+            </div>
+            <p class="subtitle">Check if your device is accessible from the internet.</p>
+            <p class="subtitle">Make sure to open the port & disable VPN before testing.</p>
+        </div>
+
+        <div class="control-panel">
+            <span class="options-label">Select Ports to Check</span>
+            <div class="options">
+                <label class="checkbox-label">
+                    <input type="checkbox" value="22"> Port 22 (SSH)
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" value="80" checked> Port 80 (HTTP)
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" value="443" checked> Port 443 (HTTPS)
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" value="8080"> Port 8080
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" value="8443"> Port 8443
+                </label>
+            </div>
+            <button id="checkBtn" onclick="runCheck()">
+                <span class="btn-text">Check Reachability</span>
+                <div class="loader"></div>
+            </button>
+            <div class="ip-version-buttons">
+                <button id="checkIPv4Btn" onclick="runCheck('ipv4')" class="ip-version-btn">
+                    <span class="btn-text">🌐 Test IPv4 only</span>
+                    <div class="loader"></div>
+                </button>
+                <button id="checkIPv6Btn" onclick="runCheck('ipv6')" class="ip-version-btn">
+                    <span class="btn-text">🌐 Test IPv6 only</span>
+                    <div class="loader"></div>
+                </button>
+            </div>
+            <button id="wizardBtn" onclick="openWizard()" class="wizard-btn">
+                <span class="btn-text">🧭 Step-by-Step Test</span>
+            </button>
+            <button id="routerTestBtn" onclick="openRouterTestModal()" class="router-test-btn">
+                <span class="btn-text">🚀 Test directly on my Router</span>
+            </button>
+        </div>
+
+        <div id="errorBox" class="error-msg"></div>
+
+        <div id="resultsArea" class="results">
+            <!-- Results will appear here via JS -->
+        </div>
+
+        <div id="ipDisplay" class="client-ip" style="display: none;"></div>
+
+        <div class="faq-section">
+            <div class="faq-title">Frequently Asked Questions</div>
+            
+            <details class="faq-item">
+                <summary>Why is my port unreachable?</summary>
+                <div class="faq-a">
+                    Common reasons include:
+                    <ul>
+                        <li>You are behind a Carrier-Grade NAT (CGNAT)</li>
+                        <li>Port forwarding is not configured on your router</li>
+                        <li>A firewall on your device is blocking the connection</li>
+                        <li>Your ISP blocks specific incoming ports (like 80/443)</li>
+                    </ul>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>Is this secure?</summary>
+                <div class="faq-a">
+                    Yes. We only attempt to connect to the IP address that sent the request. We cannot scan arbitrary IP addresses. The connection attempt is harmless and only checks if a TCP handshake is possible.
+                </div>
+            </details>
+            
+            <details class="faq-item">
+                <summary>What is TLS Analysis?</summary>
+                <div class="faq-a">
+                    If Port 443 is reachable, we inspect the SSL/TLS certificate to show you details like validity, issuer, and potential configuration issues (like expired certificates or weak ciphers).
+                </div>
+            </details>
+            
+            <details class="faq-item">
+                <summary>Are IP addresses logged?</summary>
+                <div class="faq-a">
+                    IP addresses are temporarily stored in logs for technical purposes, but are anonymized by removing the last octet (e.g., 192.168.1.xxx). This ensures privacy while allowing basic diagnostics. For IPv6, the last 80 bits are zeroed out.
+                </div>
+            </details>
+        </div>
+
+        <div class="footer">
+            <span>Developed by <a href="https://admon.me" target="_blank">admon 🦭</a> for the GL.iNet Community</span>
+            <div class="donation-badges">
+                <a href="https://github.com/sponsors/admonstrator" target="_blank">
+                    <img src="https://img.shields.io/badge/GitHub-Sponsors-EA4AAA?style=for-the-badge&logo=github" alt="GitHub Sponsors">
+                </a>
+                <a href="https://buymeacoffee.com/admon" target="_blank">
+                    <img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee">
+                </a>
+                <a href="https://ko-fi.com/admon" target="_blank">
+                    <img src="https://img.shields.io/badge/Ko--fi-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi">
+                </a>
+                <a href="https://link.admon.me/paypal" target="_blank">
+                    <img src="https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="PayPal">
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Direct Router Test Modal -->
+    <div id="routerTestModal" class="modal">
+        <div class="modal-wrapper">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>🚀 Test Directly on Your Router</h2>
+                    <button class="modal-close" onclick="closeRouterTestModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="info-box">
+                        <p><strong>💡 For Experts:</strong> This command runs the test directly on your router via SSH, without needing this website.</p>
+                    </div>
+                    
+                    <p style="margin: 1.5rem 0 1rem 0;"><strong>Simply copy and run this command on your GL.iNet router:</strong></p>
+                    
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --auto-test')">📋 Copy</button>
+                        <code>curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --auto-test</code>
+                    </div>
+                    
+                    <div class="success-box" style="margin-top: 1.5rem;">
+                        <p><strong>✨ Advantages:</strong></p>
+                        <ul>
+                            <li>✅ Works even when connected via VPN</li>
+                            <li>✅ Automatically handles firewall configuration</li>
+                            <li>✅ Tests both IPv4 and IPv6 connectivity</li>
+                            <li>✅ Shows results directly in your terminal</li>
+                            <li>✅ No manual intervention needed</li>
+                        </ul>
+                    </div>
+                    
+                    <details style="margin-top: 1.5rem;">
+                        <summary style="cursor: pointer; font-weight: 600; color: var(--primary); padding: 0.75rem 0; font-size: 1rem;">🔧 Advanced Options (Click to expand)</summary>
+                        <div style="margin-top: 1rem;">
+                            <p><strong>Test specific ports:</strong></p>
+                            <div class="code-block">
+                                <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --ports 8080,8443 --auto-test')">📋 Copy</button>
+                                <code>curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --ports 8080,8443 --auto-test</code>
+                            </div>
+                            
+                            <p style="margin-top: 1rem;"><strong>Manual mode (for web testing):</strong></p>
+                            <div class="code-block">
+                                <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://cgnat.admon.me/test.sh | sh')">📋 Copy</button>
+                                <code>curl -sSL https://cgnat.admon.me/test.sh | sh</code>
+                            </div>
+                            
+                            <p style="margin-top: 1rem;"><strong>View help and all options:</strong></p>
+                            <div class="code-block">
+                                <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --help')">📋 Copy</button>
+                                <code>curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --help</code>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+                <div class="modal-footer">
+                    <button onclick="closeRouterTestModal()" class="btn-primary" style="width: 100%;">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step-by-Step Wizard Modal -->
+    <div id="wizardModal" class="modal">
+        <div class="modal-wrapper">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="wizardTitle">Step-by-Step Router Test</h2>
+                    <button class="modal-close" onclick="closeWizard()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="wizard-progress">
+                        <div class="progress-step active" data-step="1">1</div>
+                        <div class="progress-line"></div>
+                        <div class="progress-step" data-step="2">2</div>
+                        <div class="progress-line"></div>
+                        <div class="progress-step" data-step="3">3</div>
+                        <div class="progress-line"></div>
+                        <div class="progress-step" data-step="4">4</div>
+                        <div class="progress-line"></div>
+                        <div class="progress-step" data-step="5">5</div>
+                    </div>
+                    
+                    <div id="wizardContent" class="wizard-content">
+                        <!-- Content will be injected by JavaScript -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="wizardPrevBtn" onclick="wizardPrevStep()" class="btn-secondary" style="display: none;">← Previous</button>
+                    <button id="wizardNextBtn" onclick="wizardNextStep()" class="btn-primary">Next →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js?cachebust=1.5.1"></script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+# Reflector Server Caddy Configuration
+# Replace 'example.com' with your actual domain
+
+# Main Domains (Dual-Stack: IPv4 + IPv6)
+reflector.example.com {
+	# Proxy API requests to the Go backend
+	@api path /simple /health /check
+	handle @api {
+		reverse_proxy localhost:8080 {
+			header_up X-Real-IP {http.request.header.CF-Connecting-IP}
+			header_up X-Forwarded-For {http.request.header.CF-Connecting-IP}
+			header_up X-Forwarded-Proto {scheme}
+
+			# Health check
+			health_uri /health
+			health_interval 30s
+			health_timeout 5s
+		}
+	}
+
+	# Serve static files for everything else
+	handle {
+		# Update this path to where your web/static directory is located on the server
+		root * /var/www/reflector/static
+		file_server
+		encode gzip
+	}
+
+	# Logging
+	log {
+		output file /var/log/caddy/reflector.log {
+			roll_size 100mb
+			roll_keep 10
+		}
+		format json
+	}
+}
+
+# IPv4-only Subdomain
+ipv4.example.com {
+	bind 0.0.0.0
+
+	@api path /simple /health /check
+	handle @api {
+		reverse_proxy localhost:8080 {
+			header_up X-Real-IP {http.request.header.CF-Connecting-IP}
+			header_up X-Forwarded-For {http.request.header.CF-Connecting-IP}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	handle {
+		root * /var/www/reflector/static
+		file_server
+		encode gzip
+	}
+}
+
+# IPv6-only Subdomain
+ipv6.example.com {
+	bind ::
+
+	@api path /simple /health /check
+	handle @api {
+		reverse_proxy localhost:8080 {
+			header_up X-Real-IP {http.request.header.CF-Connecting-IP}
+			header_up X-Forwarded-For {http.request.header.CF-Connecting-IP}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	handle {
+		root * /var/www/reflector/static
+		file_server
+		encode gzip
+	}
+}
