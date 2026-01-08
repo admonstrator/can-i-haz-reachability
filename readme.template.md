@@ -195,6 +195,7 @@ This project is part of a comprehensive collection of tools for GL.iNet routers.
 ---
 
 <div align="center">
+
 **Made with ❤️ by [Admon](https://github.com/Admonstrator) for the GL.iNet Community**
 
 ⭐ If you find this useful, please star the repository!
