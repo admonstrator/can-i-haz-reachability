@@ -8,6 +8,12 @@
 
 > 😺 **O HAI!** I can haz reachability? I checkz if ur ports are open so u don't haz to guess. It's like ping but fancy. Kthxbye!
 
+<div align="center">
+
+👉 Check it out here: [https://cgnat.admon.me](https://cgnat.admon.me) 👈
+
+</div>
+
 ---
 
 ## 💖 Support the Project
@@ -204,6 +210,6 @@ This project is part of a comprehensive collection of tools for GL.iNet routers.
 
 <div align="center">
 
-_Last updated: 2026-01-08_
+_Last updated: 2026-01-09_
 
 </div>
