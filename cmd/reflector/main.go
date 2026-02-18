@@ -872,6 +872,7 @@ func main() {
 	mux.HandleFunc("/check", handleCheck)
 	mux.HandleFunc("/simple", handleSimple)
 	mux.HandleFunc("/health", handleHealth)
+	mux.Handle("/", http.FileServer(http.Dir("./static")))
 
 	// Create server
 	server := &http.Server{
