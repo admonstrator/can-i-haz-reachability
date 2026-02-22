@@ -65,9 +65,9 @@ async function runCheck(ipVersion = null) {
             let apiHost;
             
             if (ipVersion === 'ipv4') {
-                apiHost = 'ipv4.example.com';
+                apiHost = 'ipv4-cgnat.admon.me';
             } else {
-                apiHost = 'ipv6.example.com';
+                apiHost = 'ipv6-cgnat.admon.me';
             }
             
             const apiUrl = `https://${apiHost}/check?ports=${ports}&tls_analyze=true`;
@@ -95,8 +95,8 @@ async function runCheck(ipVersion = null) {
             }
         } else {
             // Beide IPv4 und IPv6 parallel checken
-            const ipv4Host = 'ipv4.example.com';
-            const ipv6Host = 'ipv6.example.com';
+            const ipv4Host = 'ipv4-cgnat.admon.me';
+            const ipv6Host = 'ipv6-cgnat.admon.me';
             
             const ipv4Url = `https://${ipv4Host}/check?ports=${ports}&tls_analyze=true`;
             const ipv6Url = `https://${ipv6Host}/check?ports=${ports}&tls_analyze=true`;
@@ -701,8 +701,8 @@ const wizardSteps = {
             <p>The script will automatically open the firewall, test it, and close it again - all in one command!</p>
             
             <div class="code-block">
-                <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://reflector.example.com/test.sh | sh -s -- --auto-test')">📋 Copy</button>
-                <code>curl -sSL https://reflector.example.com/test.sh | sh -s -- --auto-test</code>
+                <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --auto-test')">📋 Copy</button>
+                <code>curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --auto-test</code>
             </div>
             
             <div class="success-box">
@@ -713,8 +713,8 @@ const wizardSteps = {
             <p>For manual testing through this website, use this command:</p>
             
             <div class="code-block">
-                <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://reflector.example.com/test.sh | sh')">📋 Copy</button>
-                <code>curl -sSL https://reflector.example.com/test.sh | sh</code>
+                <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://cgnat.admon.me/test.sh | sh')">📋 Copy</button>
+                <code>curl -sSL https://cgnat.admon.me/test.sh | sh</code>
             </div>
             
             <p style="margin-top: 1rem;"><strong>What the script does:</strong></p>
@@ -735,20 +735,20 @@ const wizardSteps = {
                 <div style="margin-top: 1rem;">
                     <p><strong>Test specific ports:</strong></p>
                     <div class="code-block">
-                        <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://reflector.example.com/test.sh | sh -s -- --ports 8080,8443 --auto-test')">📋 Copy</button>
-                        <code>curl -sSL https://reflector.example.com/test.sh | sh -s -- --ports 8080,8443 --auto-test</code>
+                        <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --ports 8080,8443 --auto-test')">📋 Copy</button>
+                        <code>curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --ports 8080,8443 --auto-test</code>
                     </div>
                     
                     <p><strong>Custom timeout (manual mode):</strong></p>
                     <div class="code-block">
-                        <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://reflector.example.com/test.sh | sh -s -- --timeout 600')">📋 Copy</button>
-                        <code>curl -sSL https://reflector.example.com/test.sh | sh -s -- --timeout 600</code>
+                        <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --timeout 600')">📋 Copy</button>
+                        <code>curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --timeout 600</code>
                     </div>
                     
                     <p><strong>Cleanup only:</strong></p>
                     <div class="code-block">
-                        <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://reflector.example.com/test.sh | sh -s -- --cleanup')">📋 Copy</button>
-                        <code>curl -sSL https://reflector.example.com/test.sh | sh -s -- --cleanup</code>
+                        <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --cleanup')">📋 Copy</button>
+                        <code>curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --cleanup</code>
                     </div>
                 </div>
             </details>
@@ -761,8 +761,8 @@ const wizardSteps = {
             <p>Teh script will automatically open teh firewall, test it, and close it again - all in 1 command! So ez!</p>
             
             <div class="code-block">
-                <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://reflector.example.com/test.sh | sh -s -- --auto-test')">📋 Copy dis magik</button>
-                <code>curl -sSL https://reflector.example.com/test.sh | sh -s -- --auto-test</code>
+                <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --auto-test')">📋 Copy dis magik</button>
+                <code>curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --auto-test</code>
             </div>
             
             <div class="success-box">
@@ -773,8 +773,8 @@ const wizardSteps = {
             <p>4 manual testin thru dis website, use dis command:</p>
             
             <div class="code-block">
-                <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://reflector.example.com/test.sh | sh')">📋 Copy</button>
-                <code>curl -sSL https://reflector.example.com/test.sh | sh</code>
+                <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://cgnat.admon.me/test.sh | sh')">📋 Copy</button>
+                <code>curl -sSL https://cgnat.admon.me/test.sh | sh</code>
             </div>
             
             <p style="margin-top: 1rem;"><strong>Wut teh script doez:</strong></p>
@@ -795,20 +795,20 @@ const wizardSteps = {
                 <div style="margin-top: 1rem;">
                     <p><strong>Test specific ports:</strong></p>
                     <div class="code-block">
-                        <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://reflector.example.com/test.sh | sh -s -- --ports 8080,8443 --auto-test')">📋 Copy dis</button>
-                        <code>curl -sSL https://reflector.example.com/test.sh | sh -s -- --ports 8080,8443 --auto-test</code>
+                        <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --ports 8080,8443 --auto-test')">📋 Copy dis</button>
+                        <code>curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --ports 8080,8443 --auto-test</code>
                     </div>
                     
                     <p><strong>Custom timeout (manual mode):</strong></p>
                     <div class="code-block">
-                        <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://reflector.example.com/test.sh | sh -s -- --timeout 600')">📋 Copy dis</button>
-                        <code>curl -sSL https://reflector.example.com/test.sh | sh -s -- --timeout 600</code>
+                        <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --timeout 600')">📋 Copy dis</button>
+                        <code>curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --timeout 600</code>
                     </div>
                     
                     <p><strong>Cleanup only:</strong></p>
                     <div class="code-block">
-                        <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://reflector.example.com/test.sh | sh -s -- --cleanup')">📋 Copy dis</button>
-                        <code>curl -sSL https://reflector.example.com/test.sh | sh -s -- --cleanup</code>
+                        <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --cleanup')">📋 Copy dis</button>
+                        <code>curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --cleanup</code>
                     </div>
                 </div>
             </details>
@@ -1182,8 +1182,8 @@ async function runTestFromWizard() {
     try {
         // Use the same ports as specified in the script (80, 443)
         const ports = '80,443';
-        const ipv4Host = 'ipv4.example.com';
-        const ipv6Host = 'ipv6.example.com';
+        const ipv4Host = 'ipv4-cgnat.admon.me';
+        const ipv6Host = 'ipv6-cgnat.admon.me';
         
         const ipv4Url = `https://${ipv4Host}/check?ports=${ports}&tls_analyze=true`;
         const ipv6Url = `https://${ipv6Host}/check?ports=${ports}&tls_analyze=true`;

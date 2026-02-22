@@ -9,7 +9,7 @@ TIMEOUT=300  # 5 minutes timeout
 PORTS="80,443"  # Default ports to test
 AUTO_TEST=0  # Automatic test mode (no user interaction)
 DEBUG=0  # Debug mode (show raw JSON responses)
-REFLECTOR_URL="https://reflector.example.com/check"
+REFLECTOR_URL="https://cgnat.admon.me/check"
 
 # Colors
 RED='\033[0;31m'
@@ -533,7 +533,7 @@ wait_for_user() {
     
     log "INFO" "Firewall is now open for testing"
     echo ""
-    printf "Test your router at: ${GREEN}https://reflector.example.com${NC}\n"
+    printf "Test your router at: ${GREEN}https://cgnat.admon.me${NC}\n"
     printf "Press ${YELLOW}ENTER${NC} when done or wait ${YELLOW}%s seconds${NC} for timeout\n" "$timeout"
     echo ""
     
