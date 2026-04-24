@@ -21,6 +21,56 @@
  * ============================================================================
  */
 
+function inferIPVersion(clientIP) {
+    if (!clientIP || typeof clientIP !== 'string') {
+        return null;
+    }
+
+    if (clientIP.includes(':')) {
+        return 6;
+    }
+
+    if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(clientIP)) {
+        return 4;
+    }
+
+    return null;
+}
+
+function getResponseIPVersion(data) {
+    if (!data || typeof data !== 'object') {
+        return null;
+    }
+
+    if (data.ip_version === 4 || data.ip_version === 6) {
+        return data.ip_version;
+    }
+
+    return inferIPVersion(data.client_ip);
+}
+
+function splitResultsByIPVersion(...responses) {
+    const grouped = {
+        ipv4Data: null,
+        ipv6Data: null
+    };
+
+    responses.filter(Boolean).forEach(data => {
+        const ipVersion = getResponseIPVersion(data);
+
+        if (ipVersion === 4 && !grouped.ipv4Data) {
+            grouped.ipv4Data = data;
+            return;
+        }
+
+        if (ipVersion === 6 && !grouped.ipv6Data) {
+            grouped.ipv6Data = data;
+        }
+    });
+
+    return grouped;
+}
+
 async function runCheck(ipVersion = null) {
     // Bestimme welcher Button gedrückt wurde
     let btn, btnText, loader;
@@ -88,11 +138,9 @@ async function runCheck(ipVersion = null) {
                 throw new Error(lolcatify(data.message || data.error || 'Connection failed'));
             }
             
-            if (ipVersion === 'ipv4') {
-                ipv4Data = data;
-            } else {
-                ipv6Data = data;
-            }
+            const grouped = splitResultsByIPVersion(data);
+            ipv4Data = grouped.ipv4Data;
+            ipv6Data = grouped.ipv6Data;
         } else {
             // Beide IPv4 und IPv6 parallel checken
             const ipv4Host = 'ipv4-cgnat.admon.me';
@@ -130,12 +178,12 @@ async function runCheck(ipVersion = null) {
             ]);
             
             // Ergebnisse auswerten
-            if (ipv4Result.status === 'fulfilled') {
-                ipv4Data = ipv4Result.value;
-            }
-            if (ipv6Result.status === 'fulfilled') {
-                ipv6Data = ipv6Result.value;
-            }
+            const grouped = splitResultsByIPVersion(
+                ipv4Result.status === 'fulfilled' ? ipv4Result.value : null,
+                ipv6Result.status === 'fulfilled' ? ipv6Result.value : null
+            );
+            ipv4Data = grouped.ipv4Data;
+            ipv6Data = grouped.ipv6Data;
             
             // Wenn beide fehlschlagen, Fehler werfen
             if (!ipv4Data && !ipv6Data) {
@@ -1220,12 +1268,12 @@ async function runTestFromWizard() {
         let ipv4Data = null;
         let ipv6Data = null;
         
-        if (ipv4Result.status === 'fulfilled') {
-            ipv4Data = ipv4Result.value;
-        }
-        if (ipv6Result.status === 'fulfilled') {
-            ipv6Data = ipv6Result.value;
-        }
+        const grouped = splitResultsByIPVersion(
+            ipv4Result.status === 'fulfilled' ? ipv4Result.value : null,
+            ipv6Result.status === 'fulfilled' ? ipv6Result.value : null
+        );
+        ipv4Data = grouped.ipv4Data;
+        ipv6Data = grouped.ipv6Data;
         
         // Wenn beide fehlschlagen, Fehler werfen
         if (!ipv4Data && !ipv6Data) {

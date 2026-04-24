@@ -37,6 +37,10 @@ reflector.example.com {
 }
 
 # IPv4-only Subdomain
+# Important: this only guarantees an IPv4-only listener when clients connect
+# directly to Caddy. If you put this hostname behind a CDN/reverse proxy such
+# as Cloudflare, the edge can still accept IPv6 clients and forward their real
+# address via headers.
 ipv4.example.com {
 	bind 0.0.0.0
 
@@ -57,6 +61,8 @@ ipv4.example.com {
 }
 
 # IPv6-only Subdomain
+# Same caveat as above: keep this DNS-only or terminate it on an IPv6-only
+# edge if you need the client address family to stay pure end-to-end.
 ipv6.example.com {
 	bind ::
 

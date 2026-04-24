@@ -177,6 +177,9 @@ curl "http://localhost:8080/simple?port=443"
 ### Health Check (`GET /health`)
 Returns the service status and basic runtime statistics.
 
+### Important Note for IPv4-/IPv6-specific Endpoints
+If you expose dedicated `ipv4` and `ipv6` hostnames, do not place them behind a dual-stack CDN or reverse proxy if you want to detect the client's real IP family. Services such as Cloudflare can accept IPv4 and IPv6 on the edge and still forward the original client IP via headers, which means an `ipv4` hostname can legitimately report an IPv6 client address. For true separation, publish those hostnames as DNS-only or terminate them on separate IPv4-only and IPv6-only listeners/load balancers.
+
 ---
 
 ## 🔍 Key Features Explained
