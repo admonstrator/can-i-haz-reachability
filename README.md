@@ -245,6 +245,6 @@ This project is part of a comprehensive collection of tools for GL.iNet routers.
 
 <div align="center">
 
-_Last updated: 2026-04-26_
+_Last updated: 2026-05-03_
 
 </div>
