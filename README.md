@@ -4,7 +4,7 @@
 
 **A professional tool to verify network reachability, TLS configurations, and firewall settings.**
 
-[![License](https://img.shields.io/github/license/Admonstrator/can-i-haz-reachability?style=for-the-badge)](LICENSE) [![Stars](https://img.shields.io/badge/stars-2-orange?style=for-the-badge&logo=github)](https://github.com/Admonstrator/can-i-haz-reachability/stargazers)
+[![License](https://img.shields.io/github/license/Admonstrator/can-i-haz-reachability?style=for-the-badge)](LICENSE) [![Stars](https://img.shields.io/badge/stars-3-orange?style=for-the-badge&logo=github)](https://github.com/Admonstrator/can-i-haz-reachability/stargazers)
 
 > 😺 **O HAI!** I can haz reachability? I checkz if ur ports are open so u don't haz to guess. It's like ping but fancy. Kthxbye!
 
@@ -245,6 +245,6 @@ This project is part of a comprehensive collection of tools for GL.iNet routers.
 
 <div align="center">
 
-_Last updated: 2026-05-10_
+_Last updated: 2026-05-17_
 
 </div>
