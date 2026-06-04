@@ -141,6 +141,13 @@ async function runCheck(ipVersion = null) {
             const grouped = splitResultsByIPVersion(data);
             ipv4Data = grouped.ipv4Data;
             ipv6Data = grouped.ipv6Data;
+            
+            if (ipVersion === 'ipv4' && !ipv4Data && ipv6Data) {
+                throw new Error(lolcatify("You requested an IPv4 test, but your connection was routed via IPv6. This happens when you don't have an IPv4 connection and Cloudflare proxies the request over IPv6. An IPv4 test cannot be performed."));
+            }
+            if (ipVersion === 'ipv6' && !ipv6Data && ipv4Data) {
+                throw new Error(lolcatify("You requested an IPv6 test, but your connection was routed via IPv4. This happens when you don't have an IPv6 connection and Cloudflare proxies the request over IPv4. An IPv6 test cannot be performed."));
+            }
         } else {
             // Beide IPv4 und IPv6 parallel checken
             const ipv4Host = 'ipv4-cgnat.admon.me';
