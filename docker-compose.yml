@@ -35,3 +35,6 @@ volumes:
 networks:
   nginx-network:
     external: true
+  default:
+    driver: bridge
+    enable_ipv6: true
