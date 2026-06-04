@@ -1,8 +1,8 @@
 services:
   reflector:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../../
+      dockerfile: deploy/docker/Dockerfile
     container_name: reflector-server
     ports:
       - "8080:8080"
