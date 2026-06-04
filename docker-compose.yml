@@ -3,15 +3,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: reflector-server
+    container_name: can-i-haz-reachability-server
     ports:
       - "8080:8080"
+    networks:
+      - nginx-network
     volumes:
       - logs:/logs
     environment:
       - REFLECTOR_PORT=8080
       - REFLECTOR_TIMEOUT=5s
-      - REFLECTOR_ALLOWED_PORTS=80,443,8080,8443
+      - REFLECTOR_ALLOWED_PORTS=22,80,443,8080,8443
       - REFLECTOR_RATE_LIMIT_PER_MIN=10
       - REFLECTOR_LOG_DIR=/logs
     restart: unless-stopped
