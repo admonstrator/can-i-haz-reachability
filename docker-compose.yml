@@ -1,7 +1,7 @@
 services:
   reflector:
     build:
-      context: ../../
+      context: .
       dockerfile: Dockerfile
     container_name: reflector-server
     ports:

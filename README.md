@@ -84,12 +84,7 @@ The API will be available at `http://localhost:8080`.
 
 ### Using Docker Compose
 
-1. Navigate to the deployment directory:
-   ```bash
-   cd deploy/docker
-   ```
-
-2. Start the service:
+1. Start the service:
    ```bash
    docker-compose up -d --build
    ```
@@ -98,7 +93,7 @@ The API will be available at `http://localhost:8080`.
 
 1. Build the image:
    ```bash
-   podman build -t reflector-server -f deploy/docker/Dockerfile .
+   podman build -t reflector-server -f Dockerfile .
    ```
 
 2. Copy the `.container` file and create the environment file:
