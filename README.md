@@ -4,7 +4,7 @@
 
 **A professional tool to verify network reachability, TLS configurations, and firewall settings.**
 
-[![License](https://img.shields.io/github/license/Admonstrator/can-i-haz-reachability?style=for-the-badge)](LICENSE) [![Stars](https://img.shields.io/badge/stars-3-orange?style=for-the-badge&logo=github)](https://github.com/Admonstrator/can-i-haz-reachability/stargazers)
+[![License](https://img.shields.io/github/license/Admonstrator/can-i-haz-reachability?style=for-the-badge)](LICENSE) [![Stars](https://img.shields.io/badge/stars-4-orange?style=for-the-badge&logo=github)](https://github.com/Admonstrator/can-i-haz-reachability/stargazers)
 
 > 😺 **O HAI!** I can haz reachability? I checkz if ur ports are open so u don't haz to guess. It's like ping but fancy. Kthxbye!
 
@@ -84,7 +84,12 @@ The API will be available at `http://localhost:8080`.
 
 ### Using Docker Compose
 
-1. Start the service:
+1. Navigate to the deployment directory:
+   ```bash
+   cd deploy/docker
+   ```
+
+2. Start the service:
    ```bash
    docker-compose up -d --build
    ```
@@ -93,7 +98,7 @@ The API will be available at `http://localhost:8080`.
 
 1. Build the image:
    ```bash
-   podman build -t reflector-server -f Dockerfile .
+   podman build -t reflector-server -f deploy/docker/Dockerfile .
    ```
 
 2. Copy the `.container` file and create the environment file:
@@ -240,6 +245,6 @@ This project is part of a comprehensive collection of tools for GL.iNet routers.
 
 <div align="center">
 
-_Last updated: 2026-05-31_
+_Last updated: 2026-06-07_
 
 </div>
