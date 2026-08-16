@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/glinet/reflector/internal/config"
@@ -17,6 +19,9 @@ import (
 	"github.com/glinet/reflector/internal/util"
 )
 
+// Version is reported by the /health endpoint.
+const Version = "2.0.0"
+
 type Handlers struct {
 	cfg         config.Config
 	rateLimiter *limiter.IPRateLimiter
@@ -24,9 +29,9 @@ type Handlers struct {
 	sc          *scanner.Scanner
 	trusted     []*net.IPNet
 	startTime   time.Time
-	
+
 	// Basic metrics
-	checksCount int64
+	checksCount atomic.Int64
 }
 
 func NewHandlers(cfg config.Config, rl *limiter.IPRateLimiter, l *logger.Logger) *Handlers {
@@ -42,9 +47,18 @@ func NewHandlers(cfg config.Config, rl *limiter.IPRateLimiter, l *logger.Logger)
 
 func (h *Handlers) parsePorts(portsParam string) ([]int, error) {
 	if portsParam == "" {
-		return []int{80, 443}, nil
+		// Apply the allowlist to the defaults too, so restricting AllowedPorts is
+		// not silently bypassed when the client omits the ports parameter.
+		var def []int
+		for _, p := range []int{80, 443} {
+			if h.cfg.AllowedPorts[p] {
+				def = append(def, p)
+			}
+		}
+		return def, nil
 	}
 
+	seen := make(map[int]struct{})
 	var ports []int
 	for _, p := range strings.Split(portsParam, ",") {
 		port, err := strconv.Atoi(strings.TrimSpace(p))
@@ -57,11 +71,14 @@ func (h *Handlers) parsePorts(portsParam string) ([]int, error) {
 		if !h.cfg.AllowedPorts[port] {
 			return nil, fmt.Errorf("port not allowed: %d", port)
 		}
+		if _, dup := seen[port]; dup {
+			continue // ignore duplicates: they only multiply scan work
+		}
+		seen[port] = struct{}{}
 		ports = append(ports, port)
-	}
-
-	if len(ports) > 5 {
-		return nil, fmt.Errorf("too many ports (max 5)")
+		if len(ports) > 5 {
+			return nil, fmt.Errorf("too many ports (max 5)")
+		}
 	}
 
 	return ports, nil
@@ -70,7 +87,7 @@ func (h *Handlers) parsePorts(portsParam string) ([]int, error) {
 func (h *Handlers) HandleCheck(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	clientIP := util.GetClientIP(r, h.trusted)
-	
+
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
@@ -81,7 +98,7 @@ func (h *Handlers) HandleCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !h.rateLimiter.GetLimiter(clientIP).Allow() {
+	if !h.rateLimiter.GetLimiter(util.RateLimitKey(clientIP)).Allow() {
 		w.WriteHeader(http.StatusTooManyRequests)
 		json.NewEncoder(w).Encode(CheckResponse{
 			Success:   false,
@@ -172,13 +189,13 @@ func (h *Handlers) HandleCheck(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	results := h.sc.ScanAllConcurrent(ctx, req)
-	
+
 	resultsBool := make(map[string]bool)
 	for k, v := range results {
 		resultsBool[k] = v.Reachable
 	}
 
-	h.checksCount++
+	h.checksCount.Add(1)
 
 	response := CheckResponse{
 		Success:   true,
@@ -206,7 +223,7 @@ func (h *Handlers) HandleCheck(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) HandleSimple(w http.ResponseWriter, r *http.Request) {
 	clientIP := util.GetClientIP(r, h.trusted)
 
-	if !h.rateLimiter.GetLimiter(clientIP).Allow() {
+	if !h.rateLimiter.GetLimiter(util.RateLimitKey(clientIP)).Allow() {
 		w.WriteHeader(http.StatusTooManyRequests)
 		fmt.Fprint(w, "error")
 		return
@@ -221,9 +238,13 @@ func (h *Handlers) HandleSimple(w http.ResponseWriter, r *http.Request) {
 
 	port := 80
 	if pStr := r.URL.Query().Get("port"); pStr != "" {
-		if p, err := strconv.Atoi(pStr); err == nil {
-			port = p
+		p, err := strconv.Atoi(pStr)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, "error")
+			return
 		}
+		port = p
 	}
 
 	if !h.cfg.AllowedPorts[port] {
@@ -245,13 +266,13 @@ func (h *Handlers) HandleSimple(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) HandleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	response := HealthResponse{
-		Status:         "healthy",
-		UptimeSeconds:  int64(time.Since(h.startTime).Seconds()),
-		Version:        "2.0.0",
-		ChecksLastHour: h.checksCount,
-		Goroutines:     0, // Would need runtime.NumGoroutine() if desired
+		Status:        "healthy",
+		UptimeSeconds: int64(time.Since(h.startTime).Seconds()),
+		Version:       Version,
+		ChecksTotal:   h.checksCount.Load(),
+		Goroutines:    runtime.NumGoroutine(),
 	}
 
 	json.NewEncoder(w).Encode(response)

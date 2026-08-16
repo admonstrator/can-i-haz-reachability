@@ -15,9 +15,9 @@ type CheckResponse struct {
 }
 
 type HealthResponse struct {
-	Status         string `json:"status"`
-	UptimeSeconds  int64  `json:"uptime_seconds"`
-	Version        string `json:"version"`
-	ChecksLastHour int64  `json:"checks_last_hour"`
-	Goroutines     int    `json:"goroutines"`
+	Status        string `json:"status"`
+	UptimeSeconds int64  `json:"uptime_seconds"`
+	Version       string `json:"version"`
+	ChecksTotal   int64  `json:"checks_total"`
+	Goroutines    int    `json:"goroutines"`
 }

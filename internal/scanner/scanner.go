@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -51,10 +52,26 @@ type ChallengeRes struct {
 
 type Scanner struct {
 	Timeout time.Duration
+	// challengeClient is reused across challenge verifications. It never follows
+	// redirects (a redirect could point the request at an internal host and turn
+	// the challenge into an SSRF primitive) and does not keep connections to the
+	// many one-off foreign hosts it contacts.
+	challengeClient *http.Client
 }
 
 func NewScanner(timeout time.Duration) *Scanner {
-	return &Scanner{Timeout: timeout}
+	return &Scanner{
+		Timeout: timeout,
+		challengeClient: &http.Client{
+			CheckRedirect: func(*http.Request, []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+			Transport: &http.Transport{
+				DisableKeepAlives:      true,
+				MaxResponseHeaderBytes: 8 << 10,
+			},
+		},
+	}
 }
 
 func formatHostPort(host string, port int) string {
@@ -66,40 +83,45 @@ func formatHostPort(host string, port int) string {
 
 func (s *Scanner) CheckPort(ctx context.Context, host string, port int) (bool, int64, error) {
 	start := time.Now()
-	
+
 	dialer := &net.Dialer{}
-	
+
 	conn, err := dialer.DialContext(ctx, "tcp", formatHostPort(host, port))
 	if err != nil {
 		return false, 0, err
 	}
 	defer conn.Close()
-	
+
 	latency := time.Since(start).Milliseconds()
 	return true, latency, nil
 }
 
 func (s *Scanner) AnalyzeTLS(ctx context.Context, host string, port int) (*TLSInfo, error) {
-	dialer := &net.Dialer{}
-	
-	conn, err := tls.DialWithDialer(dialer, "tcp",
-		formatHostPort(host, port),
-		&tls.Config{InsecureSkipVerify: true})
+	// Use a context-aware dialer so the TCP connect AND the TLS handshake are both
+	// bounded by ctx. tls.DialWithDialer only honours the dialer's Timeout/Deadline,
+	// which were unset here, letting a silent peer block the goroutine indefinitely.
+	// MinVersion TLS 1.0 lets us actually handshake with (and then flag) legacy
+	// servers instead of failing the connection outright.
+	dialer := tls.Dialer{
+		NetDialer: &net.Dialer{},
+		Config: &tls.Config{
+			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS10,
+		},
+	}
+
+	rawConn, err := dialer.DialContext(ctx, "tcp", formatHostPort(host, port))
 	if err != nil {
 		return nil, err
 	}
+	conn := rawConn.(*tls.Conn)
 	defer conn.Close()
-
-	// Implement context checking by setting deadlines if ctx has one
-	if deadline, ok := ctx.Deadline(); ok {
-		conn.SetDeadline(deadline)
-	}
 
 	state := conn.ConnectionState()
 	if len(state.PeerCertificates) == 0 {
 		return nil, fmt.Errorf("no certificates received")
 	}
-	
+
 	cert := state.PeerCertificates[0]
 
 	info := &TLSInfo{
@@ -124,19 +146,26 @@ func (s *Scanner) AnalyzeTLS(ctx context.Context, host string, port int) (*TLSIn
 
 func (s *Scanner) VerifyChallenge(ctx context.Context, host string, port int, token, path string) *ChallengeRes {
 	if path == "" {
-		path = fmt.Sprintf("/.well-known/reflector/%s", token)
+		path = "/.well-known/reflector/" + url.PathEscape(token)
 	}
 
-	url := fmt.Sprintf("http://%s:%d%s", host, port, path)
-	
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	// Harden against SSRF: challenge_path is attacker-controlled. It must be an
+	// absolute path only. Reject anything that could move the request off the
+	// verified client host — a leading "@" (which pushes host:port into the URL
+	// userinfo and lets the caller pick the host), or query/fragment/backslashes.
+	if !strings.HasPrefix(path, "/") || strings.ContainsAny(path, "@?#\\") {
+		return &ChallengeRes{Verified: false, Error: "invalid_challenge_path", Expected: token}
+	}
+
+	// Build the URL from a struct so the host can never be overridden by the path.
+	u := url.URL{Scheme: "http", Host: formatHostPort(host, port), Path: path}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
 	if err != nil {
 		return &ChallengeRes{Verified: false, Error: "request_creation_failed", Expected: token}
 	}
 
-	client := &http.Client{}
-	
-	resp, err := client.Do(req)
+	resp, err := s.challengeClient.Do(req)
 	if err != nil {
 		return &ChallengeRes{
 			Verified: false,
@@ -199,7 +228,7 @@ func (s *Scanner) GrabBanner(ctx context.Context, host string, port int) string 
 
 	buf := make([]byte, 256)
 	n, _ := conn.Read(buf)
-	
+
 	if n > 0 {
 		return sanitizeBanner(string(buf[:n]))
 	}
@@ -264,30 +293,30 @@ func sanitizeBanner(banner string) string {
 			return result
 		}
 	}
-	
+
 	var sanitized strings.Builder
 	for _, r := range banner {
 		if (r >= 32 && r <= 126) || r == '\t' || r == '\n' || r == '\r' {
 			sanitized.WriteRune(r)
 		}
 	}
-	
+
 	result := strings.TrimSpace(sanitized.String())
 	if len(result) > 200 {
 		result = result[:200] + "..."
 	}
-	
+
 	return result
 }
 
 type ScanRequest struct {
-	Host             string
-	Ports            []int
-	Challenge        string
-	ChallengePath    string
-	ChallengePort    int
-	TLSAnalyze       bool
-	WantBanner       bool
+	Host          string
+	Ports         []int
+	Challenge     string
+	ChallengePath string
+	ChallengePort int
+	TLSAnalyze    bool
+	WantBanner    bool
 }
 
 func (s *Scanner) ScanAllConcurrent(ctx context.Context, req ScanRequest) map[string]PortResult {
@@ -299,13 +328,13 @@ func (s *Scanner) ScanAllConcurrent(ctx context.Context, req ScanRequest) map[st
 		wg.Add(1)
 		go func(p int) {
 			defer wg.Done()
-			
+
 			// Give each port its own timeout context based on scanner configuration
 			portCtx, cancel := context.WithTimeout(ctx, s.Timeout)
 			defer cancel()
 
 			reachable, latency, err := s.CheckPort(portCtx, req.Host, p)
-			
+
 			result := PortResult{
 				Reachable: reachable,
 				LatencyMs: latency,

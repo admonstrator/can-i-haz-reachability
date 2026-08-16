@@ -21,6 +21,20 @@
  * ============================================================================
  */
 
+// Escape values that originate from the scanned target (TLS certificate fields,
+// service banners, client IP) before inserting them into innerHTML. Under CGNAT
+// several customers can share one public IP, so this data is not necessarily
+// controlled by the person viewing the page.
+function escapeHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function inferIPVersion(clientIP) {
     if (!clientIP || typeof clientIP !== 'string') {
         return null;
@@ -164,7 +178,11 @@ async function runCheck(ipVersion = null) {
                     try {
                         const response = await fetch(ipv4Url, { signal: controller.signal });
                         clearTimeout(timeoutId);
-                        return await response.json();
+                        const data = await response.json();
+                        if (!response.ok || data.success === false) {
+                            throw new Error(data.message || data.error || 'Connection failed');
+                        }
+                        return data;
                     } catch (e) {
                         clearTimeout(timeoutId);
                         throw e;
@@ -176,7 +194,11 @@ async function runCheck(ipVersion = null) {
                     try {
                         const response = await fetch(ipv6Url, { signal: controller.signal });
                         clearTimeout(timeoutId);
-                        return await response.json();
+                        const data = await response.json();
+                        if (!response.ok || data.success === false) {
+                            throw new Error(data.message || data.error || 'Connection failed');
+                        }
+                        return data;
                     } catch (e) {
                         clearTimeout(timeoutId);
                         throw e;
@@ -192,9 +214,13 @@ async function runCheck(ipVersion = null) {
             ipv4Data = grouped.ipv4Data;
             ipv6Data = grouped.ipv6Data;
             
-            // Wenn beide fehlschlagen, Fehler werfen
+            // Wenn beide fehlschlagen, Fehler werfen – mit konkretem Grund, falls vorhanden
             if (!ipv4Data && !ipv6Data) {
-                throw new Error(lolcatify('Both IPv4 and IPv6 checks failed'));
+                const reason =
+                    (ipv4Result.status === 'rejected' && ipv4Result.reason && ipv4Result.reason.message) ||
+                    (ipv6Result.status === 'rejected' && ipv6Result.reason && ipv6Result.reason.message) ||
+                    'Both IPv4 and IPv6 checks failed';
+                throw new Error(lolcatify(reason));
             }
         }
 
@@ -236,10 +262,10 @@ function displayResults(ipv4Data, ipv6Data) {
     // IP-Adressen anzeigen
     let ipInfo = [];
     if (ipv4Data && ipv4Data.client_ip) {
-        ipInfo.push(`IPv4: <strong>${ipv4Data.client_ip}</strong>`);
+        ipInfo.push(`IPv4: <strong>${escapeHtml(ipv4Data.client_ip)}</strong>`);
     }
     if (ipv6Data && ipv6Data.client_ip) {
-        ipInfo.push(`IPv6: <strong>${ipv6Data.client_ip}</strong>`);
+        ipInfo.push(`IPv6: <strong>${escapeHtml(ipv6Data.client_ip)}</strong>`);
     }
     
     ipDisplay.className = 'client-ip';
@@ -267,7 +293,8 @@ function displayResults(ipv4Data, ipv6Data) {
 
         let tlsContent = '';
         let sshContent = '';
-        let expandButton = '';
+        let tlsButton = '';
+        let sshButton = '';
         
         // Bestimme welches Result für TLS/SSH Details verwendet wird (bevorzuge IPv4)
         const primaryResult = ipv4Result || ipv6Result;
@@ -280,7 +307,7 @@ function displayResults(ipv4Data, ipv6Data) {
             
             let warningHtml = '';
             if (warnings.length > 0) {
-                warningHtml = warnings.map(w => `<div class="tls-warning">⚠️ ${w.replace(/_/g, ' ')}</div>`).join('');
+                warningHtml = warnings.map(w => `<div class="tls-warning">⚠️ ${escapeHtml(w).replace(/_/g, ' ')}</div>`).join('');
             }
 
             const notBefore = cert.not_before ? new Date(cert.not_before).toLocaleDateString() : 'N/A';
@@ -288,23 +315,23 @@ function displayResults(ipv4Data, ipv6Data) {
             const daysLeft = cert.days_until_expiry !== undefined ? `${cert.days_until_expiry} days` : 'N/A';
 
             tlsContent = `
-                <div class="result-details" id="details-${port}">
+                <div class="result-details" id="details-tls-${port}">
                     <div class="tls-info-grid">
                         <div class="tls-info-item">
                             <span class="tls-label">Version</span>
-                            <span class="tls-value">${result.tls.version || 'Unknown'}</span>
+                            <span class="tls-value">${escapeHtml(result.tls.version) || 'Unknown'}</span>
                         </div>
                         <div class="tls-info-item">
                             <span class="tls-label">Cipher Suite</span>
-                            <span class="tls-value">${result.tls.cipher_suite || 'Unknown'}</span>
+                            <span class="tls-value">${escapeHtml(result.tls.cipher_suite) || 'Unknown'}</span>
                         </div>
                         <div class="tls-info-item">
                             <span class="tls-label">Subject</span>
-                            <span class="tls-value">${cert.subject || 'N/A'}</span>
+                            <span class="tls-value">${escapeHtml(cert.subject) || 'N/A'}</span>
                         </div>
                          <div class="tls-info-item">
                             <span class="tls-label">Issuer</span>
-                            <span class="tls-value">${cert.issuer || 'N/A'}</span>
+                            <span class="tls-value">${escapeHtml(cert.issuer) || 'N/A'}</span>
                         </div>
                         <div class="tls-info-item">
                             <span class="tls-label">Validity</span>
@@ -317,7 +344,7 @@ function displayResults(ipv4Data, ipv6Data) {
                         ${cert.dns_names ? `
                         <div class="tls-info-item" style="grid-column: 1 / -1;">
                             <span class="tls-label">DNS Names</span>
-                            <span class="tls-value">${cert.dns_names.join(', ')}</span>
+                            <span class="tls-value">${cert.dns_names.map(escapeHtml).join(', ')}</span>
                         </div>` : ''}
                         ${warningHtml ? `
                         <div class="tls-info-item" style="grid-column: 1 / -1;">
@@ -327,9 +354,9 @@ function displayResults(ipv4Data, ipv6Data) {
                     </div>
                 </div>
             `;
-            
-            expandButton = `
-                <button class="expand-btn" onclick="toggleDetails('details-${port}', this)">
+
+            tlsButton = `
+                <button class="expand-btn" onclick="toggleDetails('details-tls-${port}', this)">
                     Details <span class="expand-icon">▼</span>
                 </button>
             `;
@@ -347,38 +374,38 @@ function displayResults(ipv4Data, ipv6Data) {
             
             let warningHtml = '';
             if (warnings.length > 0) {
-                warningHtml = warnings.map(w => `<div class="tls-warning">⚠️ ${w.replace(/_/g, ' ')}</div>`).join('');
+                warningHtml = warnings.map(w => `<div class="tls-warning">⚠️ ${escapeHtml(w).replace(/_/g, ' ')}</div>`).join('');
             }
 
             // Build SSH info content
             let sshInfoItems = `
                 <div class="tls-info-item">
                     <span class="tls-label">Banner</span>
-                    <span class="tls-value">${banner}</span>
+                    <span class="tls-value">${escapeHtml(banner)}</span>
                 </div>`;
-            
+
             // Add SSH-specific fields if available
             if (ssh.protocol) {
                 sshInfoItems += `
                 <div class="tls-info-item">
                     <span class="tls-label">Protocol</span>
-                    <span class="tls-value">${ssh.protocol}</span>
+                    <span class="tls-value">${escapeHtml(ssh.protocol)}</span>
                 </div>`;
             }
-            
+
             if (ssh.software) {
                 sshInfoItems += `
                 <div class="tls-info-item">
                     <span class="tls-label">Software</span>
-                    <span class="tls-value">${ssh.software}</span>
+                    <span class="tls-value">${escapeHtml(ssh.software)}</span>
                 </div>`;
             }
-            
+
             if (ssh.host_key_algo) {
                 sshInfoItems += `
                 <div class="tls-info-item">
                     <span class="tls-label">Host Key</span>
-                    <span class="tls-value">${ssh.host_key_algo}</span>
+                    <span class="tls-value">${escapeHtml(ssh.host_key_algo)}</span>
                 </div>`;
             }
             
@@ -391,15 +418,15 @@ function displayResults(ipv4Data, ipv6Data) {
             }
 
             sshContent = `
-                <div class="result-details" id="details-${port}">
+                <div class="result-details" id="details-ssh-${port}">
                     <div class="tls-info-grid">
                         ${sshInfoItems}
                     </div>
                 </div>
             `;
-            
-            expandButton = `
-                <button class="expand-btn" onclick="toggleDetails('details-${port}', this)">
+
+            sshButton = `
+                <button class="expand-btn" onclick="toggleDetails('details-ssh-${port}', this)">
                     Details <span class="expand-icon">▼</span>
                 </button>
             `;
@@ -474,10 +501,11 @@ function displayResults(ipv4Data, ipv6Data) {
         item.innerHTML = `
             <div class="result-header">
                 <div class="port-info">
-                    <span class="port-number">Port ${port}</span>
+                    <span class="port-number">Port ${escapeHtml(port)}</span>
                     ${tlsBadge}
                     ${sshBadge}
-                    ${expandButton}
+                    ${tlsButton}
+                    ${sshButton}
                 </div>
                 ${statusHtml}
             </div>
@@ -492,10 +520,8 @@ function displayResults(ipv4Data, ipv6Data) {
 }
 
 window.toggleDetails = function(id, btn) {
-    console.log("Toggling details for:", id);
     const details = document.getElementById(id);
     if (!details) {
-        console.error("Details element not found:", id);
         return;
     }
     
@@ -1131,6 +1157,9 @@ function openWizard() {
 
 function closeWizard() {
     const modal = document.getElementById('wizardModal');
+    // Only act when the wizard is actually open, so pressing Escape elsewhere on
+    // the page does not trigger the scroll-restore (which would jump to the top).
+    if (!modal.classList.contains('show')) return;
     modal.classList.remove('show');
     document.body.classList.remove('modal-open');
     
@@ -1251,7 +1280,11 @@ async function runTestFromWizard() {
                 try {
                     const response = await fetch(ipv4Url, { signal: controller.signal });
                     clearTimeout(timeoutId);
-                    return await response.json();
+                    const data = await response.json();
+                    if (!response.ok || data.success === false) {
+                        throw new Error(data.message || data.error || 'Connection failed');
+                    }
+                    return data;
                 } catch (e) {
                     clearTimeout(timeoutId);
                     throw e;
@@ -1263,7 +1296,11 @@ async function runTestFromWizard() {
                 try {
                     const response = await fetch(ipv6Url, { signal: controller.signal });
                     clearTimeout(timeoutId);
-                    return await response.json();
+                    const data = await response.json();
+                    if (!response.ok || data.success === false) {
+                        throw new Error(data.message || data.error || 'Connection failed');
+                    }
+                    return data;
                 } catch (e) {
                     clearTimeout(timeoutId);
                     throw e;
@@ -1293,7 +1330,7 @@ async function runTestFromWizard() {
         // IPv4 Results
         if (ipv4Data) {
             resultsHtml += `<h4 style="color: var(--primary); margin-top: 1.5rem;">🌐 IPv4 Results</h4>`;
-            resultsHtml += `<p><strong>${lolcatMode ? 'Ur Public IPv4:' : 'Your Public IPv4:'}</strong> ${ipv4Data.client_ip}</p>`;
+            resultsHtml += `<p><strong>${lolcatMode ? 'Ur Public IPv4:' : 'Your Public IPv4:'}</strong> ${escapeHtml(ipv4Data.client_ip)}</p>`;
             resultsHtml += '<div style="margin-top: 1rem;">';
             
             Object.keys(ipv4Data.results).forEach(port => {
@@ -1306,7 +1343,7 @@ async function runTestFromWizard() {
                 
                 resultsHtml += `
                     <div class="${statusClass}" style="margin-bottom: 1rem;">
-                        <p><strong>${statusIcon} Port ${port}:</strong> ${statusText}</p>
+                        <p><strong>${statusIcon} Port ${escapeHtml(port)}:</strong> ${statusText}</p>
                     </div>
                 `;
             });
@@ -1320,7 +1357,7 @@ async function runTestFromWizard() {
         // IPv6 Results
         if (ipv6Data) {
             resultsHtml += `<h4 style="color: var(--primary); margin-top: 1.5rem;">🌐 IPv6 Results</h4>`;
-            resultsHtml += `<p><strong>${lolcatMode ? 'Ur Public IPv6:' : 'Your Public IPv6:'}</strong> ${ipv6Data.client_ip}</p>`;
+            resultsHtml += `<p><strong>${lolcatMode ? 'Ur Public IPv6:' : 'Your Public IPv6:'}</strong> ${escapeHtml(ipv6Data.client_ip)}</p>`;
             resultsHtml += '<div style="margin-top: 1rem;">';
             
             Object.keys(ipv6Data.results).forEach(port => {
@@ -1333,7 +1370,7 @@ async function runTestFromWizard() {
                 
                 resultsHtml += `
                     <div class="${statusClass}" style="margin-bottom: 1rem;">
-                        <p><strong>${statusIcon} Port ${port}:</strong> ${statusText}</p>
+                        <p><strong>${statusIcon} Port ${escapeHtml(port)}:</strong> ${statusText}</p>
                     </div>
                 `;
             });
@@ -1486,6 +1523,8 @@ function openRouterTestModal() {
 
 function closeRouterTestModal() {
     const modal = document.getElementById('routerTestModal');
+    // Only act when this modal is actually open.
+    if (modal.style.display !== 'block') return;
     modal.style.display = 'none';
     // Restore body scrolling
     document.body.style.overflow = 'auto';

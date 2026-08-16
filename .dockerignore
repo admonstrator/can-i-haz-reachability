@@ -1,0 +1,10 @@
+.git
+.github
+.gitignore
+*.md
+readme.template.md
+images/
+deploy/
+docker-compose.yml
+env.example
+LICENSE

@@ -33,8 +33,8 @@ jobs:
           
           latest_release=$(echo "$release_response" | jq -r '.tag_name // "N/A"')
           
-          # Get script version from main.go
-          script_version=$(grep 'Version:        "' cmd/reflector/main.go | cut -d'"' -f2)
+          # Get script version from the test.sh client (source of {{SCRIPT_VERSION}})
+          script_version=$(grep '^SCRIPT_VERSION=' web/static/test.sh | head -n1 | cut -d'"' -f2)
           
           echo "stars=$stars" >> $GITHUB_OUTPUT
           echo "forks=$forks" >> $GITHUB_OUTPUT

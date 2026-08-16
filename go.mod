@@ -1,4 +1,3 @@
-// filepath: go.mod
 module github.com/glinet/reflector
 
 go 1.25.0

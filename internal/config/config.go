@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -40,7 +41,7 @@ func LoadConfig() Config {
 			"2400:cb00::/32", "2606:4700::/32", "2803:f800::/32", "2405:b500::/32",
 			"2405:8100::/32", "2a06:98c0::/29", "2c0f:f248::/32",
 		},
-		LogDir:          "/logs",
+		LogDir: "/logs",
 	}
 
 	if port := os.Getenv("REFLECTOR_PORT"); port != "" {
@@ -60,11 +61,16 @@ func LoadConfig() Config {
 		}
 	}
 	if allowedPorts := os.Getenv("REFLECTOR_ALLOWED_PORTS"); allowedPorts != "" {
-		cfg.AllowedPorts = make(map[int]bool)
+		parsed := make(map[int]bool)
 		for _, p := range strings.Split(allowedPorts, ",") {
-			if port, err := strconv.Atoi(strings.TrimSpace(p)); err == nil {
-				cfg.AllowedPorts[port] = true
+			if port, err := strconv.Atoi(strings.TrimSpace(p)); err == nil && port >= 1 && port <= 65535 {
+				parsed[port] = true
 			}
+		}
+		if len(parsed) == 0 {
+			log.Printf("REFLECTOR_ALLOWED_PORTS=%q yielded no valid ports, keeping defaults", allowedPorts)
+		} else {
+			cfg.AllowedPorts = parsed
 		}
 	}
 	if trustedProxies := os.Getenv("REFLECTOR_TRUSTED_PROXIES"); trustedProxies != "" {
@@ -72,6 +78,16 @@ func LoadConfig() Config {
 		for _, p := range strings.Split(trustedProxies, ",") {
 			cfg.TrustedProxies = append(cfg.TrustedProxies, strings.TrimSpace(p))
 		}
+	}
+
+	// Guard against configurations that would panic or silently disable protections.
+	if cfg.RateLimitPerMin < 1 {
+		log.Printf("REFLECTOR_RATE_LIMIT_PER_MIN=%d is invalid, using 10", cfg.RateLimitPerMin)
+		cfg.RateLimitPerMin = 10
+	}
+	if cfg.Timeout <= 0 {
+		log.Printf("REFLECTOR_TIMEOUT=%v is invalid, using 5s", cfg.Timeout)
+		cfg.Timeout = 5 * time.Second
 	}
 
 	return cfg

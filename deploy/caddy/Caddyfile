@@ -1,32 +1,68 @@
 # Reflector Server Caddy Configuration
-# Replace 'example.com' with your actual domain
+# Replace 'example.com' with your actual domain.
+#
+# SECURITY: This config assumes the origin sits behind Cloudflare. It derives the
+# real client IP from CF-Connecting-IP ONLY for requests whose immediate peer is a
+# Cloudflare edge (trusted_proxies below). A request that reaches the origin
+# directly (bypassing Cloudflare) can no longer spoof its IP via CF-Connecting-IP
+# or X-Forwarded-For — Caddy falls back to the real remote address instead.
+# You should still firewall the origin so only Cloudflare ranges can reach it.
 
-# Main Domains (Dual-Stack: IPv4 + IPv6)
+{
+	servers {
+		# Trust only Cloudflare edge ranges as proxies.
+		trusted_proxies static \
+			173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 \
+			141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 \
+			197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 \
+			104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 \
+			2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 \
+			2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+		# Derive {http.request.client_ip} from CF-Connecting-IP for trusted peers.
+		client_ip_headers CF-Connecting-IP
+	}
+}
+
+# Shared snippet: proxy API requests to the Go backend.
+(reflector_api) {
+	reverse_proxy localhost:8080 {
+		# Never forward a client-supplied CF-Connecting-IP; hand the backend the IP
+		# Caddy derived (real client behind CF, or the real remote address if the
+		# request bypassed CF).
+		header_up -CF-Connecting-IP
+		header_up X-Real-IP {http.request.client_ip}
+		header_up X-Forwarded-For {http.request.client_ip}
+		header_up X-Forwarded-Proto {scheme}
+
+		health_uri /health
+		health_interval 30s
+		health_timeout 5s
+	}
+}
+
+# Shared snippet: serve the static frontend.
+(reflector_static) {
+	root * /var/www/reflector/static
+	encode zstd gzip
+
+	# Long-lived caching for versioned/immutable assets; always revalidate the page.
+	@immutable path /fonts/* /app.webp /favicon.ico
+	header @immutable Cache-Control "public, max-age=31536000, immutable"
+	header /index.html Cache-Control "no-cache"
+
+	file_server
+}
+
+# Main domain (dual-stack: IPv4 + IPv6)
 reflector.example.com {
-	# Proxy API requests to the Go backend
 	@api path /simple /health /check
 	handle @api {
-		reverse_proxy localhost:8080 {
-			header_up X-Real-IP {http.request.header.CF-Connecting-IP}
-			header_up X-Forwarded-For {http.request.header.CF-Connecting-IP}
-			header_up X-Forwarded-Proto {scheme}
-
-			# Health check
-			health_uri /health
-			health_interval 30s
-			health_timeout 5s
-		}
+		import reflector_api
 	}
-
-	# Serve static files for everything else
 	handle {
-		# Update this path to where your web/static directory is located on the server
-		root * /var/www/reflector/static
-		file_server
-		encode gzip
+		import reflector_static
 	}
 
-	# Logging
 	log {
 		output file /var/log/caddy/reflector.log {
 			roll_size 100mb
@@ -36,48 +72,31 @@ reflector.example.com {
 	}
 }
 
-# IPv4-only Subdomain
-# Important: this only guarantees an IPv4-only listener when clients connect
-# directly to Caddy. If you put this hostname behind a CDN/reverse proxy such
-# as Cloudflare, the edge can still accept IPv6 clients and forward their real
-# address via headers.
+# IPv4-only subdomain.
+# Note: this only guarantees an IPv4-only listener when clients connect directly
+# to Caddy. Behind a CDN/reverse proxy such as Cloudflare, the edge can still
+# accept IPv6 clients and forward their real address via headers.
 ipv4.example.com {
 	bind 0.0.0.0
 
 	@api path /simple /health /check
 	handle @api {
-		reverse_proxy localhost:8080 {
-			header_up X-Real-IP {http.request.header.CF-Connecting-IP}
-			header_up X-Forwarded-For {http.request.header.CF-Connecting-IP}
-			header_up X-Forwarded-Proto {scheme}
-		}
+		import reflector_api
 	}
-
 	handle {
-		root * /var/www/reflector/static
-		file_server
-		encode gzip
+		import reflector_static
 	}
 }
 
-# IPv6-only Subdomain
-# Same caveat as above: keep this DNS-only or terminate it on an IPv6-only
-# edge if you need the client address family to stay pure end-to-end.
+# IPv6-only subdomain (same caveat as above).
 ipv6.example.com {
 	bind ::
 
 	@api path /simple /health /check
 	handle @api {
-		reverse_proxy localhost:8080 {
-			header_up X-Real-IP {http.request.header.CF-Connecting-IP}
-			header_up X-Forwarded-For {http.request.header.CF-Connecting-IP}
-			header_up X-Forwarded-Proto {scheme}
-		}
+		import reflector_api
 	}
-
 	handle {
-		root * /var/www/reflector/static
-		file_server
-		encode gzip
+		import reflector_static
 	}
 }

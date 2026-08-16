@@ -5,7 +5,10 @@ services:
       dockerfile: Dockerfile
     container_name: can-i-haz-reachability-server
     ports:
-      - "8080:8080"
+      # Bind to loopback only: the service is meant to sit behind the reverse
+      # proxy. Publishing on 0.0.0.0 exposes an unauthenticated, TLS-less path
+      # around Caddy (and around its client-IP handling).
+      - "127.0.0.1:8080:8080"
     networks:
       - nginx-network
       - default
@@ -18,6 +21,12 @@ services:
       - REFLECTOR_RATE_LIMIT_PER_MIN=10
       - REFLECTOR_LOG_DIR=/logs
     restart: unless-stopped
+    # Hardening (matches the Podman quadlet in deploy/podman)
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 512
     # Increase file descriptor limit for many concurrent connections
     ulimits:
       nofile:

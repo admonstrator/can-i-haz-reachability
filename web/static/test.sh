@@ -565,16 +565,45 @@ wait_for_user() {
     fi
 }
 
+# Restore a single firewall family to exactly the state it had before the test.
+# $1=family  $2=prior state (0 enabled / 1 disabled / 2 absent)  $3=old dest_port  $4=old enabled
+restore_firewall_family() {
+    local family="$1"
+    local state="$2"
+    local old_port="$3"
+    local old_enabled="$4"
+
+    if [ "$state" = "2" ]; then
+        # The rule did not exist before the test: remove only the one we created.
+        if check_firewall_rule_exists "$family"; then
+            uci -q delete "firewall.reflector_test_${family}"
+            CLEANUP_CHANGED=1
+        fi
+    else
+        # The rule pre-existed (user's rule): restore its previous dest_port and
+        # enabled flag instead of deleting it or leaving our changes in place.
+        uci set "firewall.reflector_test_${family}.dest_port=${old_port}"
+        uci set "firewall.reflector_test_${family}.enabled=${old_enabled:-0}"
+        CLEANUP_CHANGED=1
+    fi
+}
+
 # Cleanup function (called on exit)
 cleanup() {
     local exit_code=$?
     log "INFO" "Cleaning up..."
-    
-    if [ "$FIREWALL_WAS_OPEN" -eq 0 ]; then
-        # Firewall was closed before, close it again
-        close_firewall
+
+    CLEANUP_CHANGED=0
+    restore_firewall_family "ipv4" "${FIREWALL_STATE_IPV4:-2}" "$OLD_DEST_PORT_IPV4" "$OLD_ENABLED_IPV4"
+    restore_firewall_family "ipv6" "${FIREWALL_STATE_IPV6:-2}" "$OLD_DEST_PORT_IPV6" "$OLD_ENABLED_IPV6"
+
+    if [ "$CLEANUP_CHANGED" = "1" ]; then
+        uci commit firewall
+        log "INFO" "Restarting firewall..."
+        /etc/init.d/firewall restart >/dev/null 2>&1
+        log "SUCCESS" "Firewall restored to its previous state"
     else
-        log "INFO" "Firewall was already open before test, keeping it open"
+        log "INFO" "No firewall changes to revert"
     fi
     echo ""
     echo "If this script was helpful, please consider supporting the project:"
@@ -596,10 +625,18 @@ main() {
     while [ $# -gt 0 ]; do
         case "$1" in
             --ports)
+                if [ $# -lt 2 ] || [ -z "$2" ]; then
+                    log "ERROR" "--ports requires a value (e.g. --ports 80,443)"
+                    exit 1
+                fi
                 PORTS="$2"
                 shift 2
                 ;;
             --timeout)
+                if [ $# -lt 2 ] || [ -z "$2" ]; then
+                    log "ERROR" "--timeout requires a value in seconds"
+                    exit 1
+                fi
                 TIMEOUT="$2"
                 shift 2
                 ;;
@@ -653,9 +690,13 @@ main() {
     
     get_firewall_rule_state "ipv4"
     FIREWALL_STATE_IPV4=$?
-    
+    OLD_DEST_PORT_IPV4=$(uci -q get firewall.reflector_test_ipv4.dest_port 2>/dev/null)
+    OLD_ENABLED_IPV4=$(uci -q get firewall.reflector_test_ipv4.enabled 2>/dev/null)
+
     get_firewall_rule_state "ipv6"
     FIREWALL_STATE_IPV6=$?
+    OLD_DEST_PORT_IPV6=$(uci -q get firewall.reflector_test_ipv6.dest_port 2>/dev/null)
+    OLD_ENABLED_IPV6=$(uci -q get firewall.reflector_test_ipv6.enabled 2>/dev/null)
     
     case $FIREWALL_STATE_IPV4 in
         0)
