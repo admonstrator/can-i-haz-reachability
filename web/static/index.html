@@ -4,87 +4,50 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Can I host stuff on my router?</title>
-    <meta name="description" content="Check if your device is accessible from the internet. Test IPv4 and IPv6 connectivity, analyze TLS certificates, and diagnose port reachability issues.">
+    <meta name="description" content="Test your GL.iNet router's internet reachability directly from the router.">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://cgnat.admon.me/">
     <meta property="og:title" content="Can I host stuff on my router?">
-    <meta property="og:description" content="Check if your device is accessible from the internet. Test IPv4 and IPv6 connectivity, analyze TLS certificates, and diagnose port reachability issues.">
+    <meta property="og:description" content="Test your GL.iNet router's internet reachability directly from the router.">
     <meta property="og:image" content="https://cgnat.admon.me/app.webp">
     
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://cgnat.admon.me/">
     <meta property="twitter:title" content="Can I host stuff on my router?">
-    <meta property="twitter:description" content="Check if your device is accessible from the internet. Test IPv4 and IPv6 connectivity, analyze TLS certificates, and diagnose port reachability issues.">
+    <meta property="twitter:description" content="Test your GL.iNet router's internet reachability directly from the router.">
     <meta property="twitter:image" content="https://cgnat.admon.me/app.webp">
     
-    <link rel="stylesheet" href="style.css?cachebust=1.5.1">
+    <link rel="stylesheet" href="style.css?cachebust=1.5.4">
 </head>
 <body>
     <div class="container">
         <div class="header">
             <div class="icon">📡</div>
             <div class="title-wrapper">
-                <h1>Can I host stuff on my router?</h1>
+                <h1>Can I host on my router?</h1>
                 <span class="badge-admon">by Admon</span>
             </div>
-            <p class="subtitle">Check if your device is accessible from the internet.</p>
-            <p class="subtitle">Before testing, make sure to open the port on your router and disable your VPN. If you're unsure, use the Step-by-Step Wizard for guidance.</p>
+            <p class="subtitle">Check if your GL.iNet router is reachable from the internet.</p>
         </div>
 
         <div class="control-panel">
-            <span class="options-label">Select Ports to Check</span>
-            <div class="options">
-                <label class="checkbox-label">
-                    <input type="checkbox" value="22"> Port 22 (SSH)
-                </label>
-                <label class="checkbox-label">
-                    <input type="checkbox" value="80" checked> Port 80 (HTTP)
-                </label>
-                <label class="checkbox-label">
-                    <input type="checkbox" value="443" checked> Port 443 (HTTPS)
-                </label>
-                <label class="checkbox-label">
-                    <input type="checkbox" value="8080"> Port 8080
-                </label>
-                <label class="checkbox-label">
-                    <input type="checkbox" value="8443"> Port 8443
-                </label>
-            </div>
-            <button id="checkBtn" onclick="runCheck()">
-                <span class="btn-text">Check Reachability</span>
-                <div class="loader"></div>
-            </button>
-            <div class="ip-version-buttons">
-                <button id="checkIPv4Btn" onclick="runCheck('ipv4')" class="ip-version-btn">
-                    <span class="btn-text">🌐 Test IPv4 only</span>
-                    <div class="loader"></div>
+            <div class="router-test-intro">
+                <span class="options-label">IPv4 + IPv6 · About 2 minutes</span>
+                <p>Run one quick test directly from your router.</p>
+                <button id="routerTestBtn" onclick="openRouterTestModal()" class="router-test-btn">
+                    <span class="btn-text">Start test</span>
                 </button>
-                <button id="checkIPv6Btn" onclick="runCheck('ipv6')" class="ip-version-btn">
-                    <span class="btn-text">🌐 Test IPv6 only</span>
-                    <div class="loader"></div>
+                <button id="wizardBtn" onclick="openWizard()" class="wizard-btn">
+                    <span class="btn-text">Need help? Step-by-step guide</span>
                 </button>
             </div>
-            <button id="wizardBtn" onclick="openWizard()" class="wizard-btn">
-                <span class="btn-text">🧭 Step-by-Step Test</span>
-            </button>
-            <button id="routerTestBtn" onclick="openRouterTestModal()" class="router-test-btn">
-                <span class="btn-text">🚀 Test directly on my Router</span>
-            </button>
         </div>
-
-        <div id="errorBox" class="error-msg"></div>
-
-        <div id="resultsArea" class="results">
-            <!-- Results will appear here via JS -->
-        </div>
-
-        <div id="ipDisplay" class="client-ip" style="display: none;"></div>
 
         <div class="faq-section">
-            <div class="faq-title">Frequently Asked Questions</div>
+            <div class="faq-title">Quick answers</div>
             
             <details class="faq-item">
                 <summary>Why is my port unreachable?</summary>
@@ -122,7 +85,7 @@
         </div>
 
         <div class="footer">
-            <span>Developed by <a href="https://admon.me" target="_blank">admon 🦭</a> for the GL.iNet Community</span>
+            <span>Made for the GL.iNet community by <a href="https://admon.me" target="_blank">Admon</a></span>
             <div class="donation-badges">
                 <a href="https://github.com/sponsors/admonstrator" target="_blank">
                     <img src="https://img.shields.io/badge/GitHub-Sponsors-EA4AAA?style=for-the-badge&logo=github" alt="GitHub Sponsors">
@@ -140,7 +103,7 @@
         </div>
     </div>
 
-    <!-- Direct Router Test Modal -->
+    <!-- Router Test Modal -->
     <div id="routerTestModal" class="modal">
         <div class="modal-wrapper">
             <div class="modal-content">
@@ -178,12 +141,6 @@
                             <div class="code-block">
                                 <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --ports 8080,8443 --auto-test')">📋 Copy</button>
                                 <code>curl -sSL https://cgnat.admon.me/test.sh | sh -s -- --ports 8080,8443 --auto-test</code>
-                            </div>
-                            
-                            <p style="margin-top: 1rem;"><strong>Manual mode (for web testing):</strong></p>
-                            <div class="code-block">
-                                <button class="copy-btn" onclick="copyCode(this, 'curl -sSL https://cgnat.admon.me/test.sh | sh')">📋 Copy</button>
-                                <code>curl -sSL https://cgnat.admon.me/test.sh | sh</code>
                             </div>
                             
                             <p style="margin-top: 1rem;"><strong>View help and all options:</strong></p>
@@ -234,6 +191,6 @@
         </div>
     </div>
 
-    <script src="script.js?cachebust=1.5.1"></script>
+    <script src="script.js?cachebust=1.5.3"></script>
 </body>
 </html>
