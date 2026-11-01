@@ -7,7 +7,7 @@ services:
     ports:
       - "8080:8080"
     networks:
-      - nginx-network
+      - cloudflared-hosted
       - default
     volumes:
       - logs:/logs
@@ -34,7 +34,7 @@ volumes:
   logs:
 
 networks:
-  nginx-network:
+  cloudflared-hosted:
     external: true
   default:
     driver: bridge
